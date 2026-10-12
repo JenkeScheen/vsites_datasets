@@ -1,0 +1,17 @@
+name: vsites-datasets
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas>=2
+  - scipy
+  - matplotlib
+  - seaborn
+  - rdkit>=2024.03
+  - biotite>=1.0
+  - ipykernel
+  - jupyterlab
+  - pip
+  - pip:
+      - polaris-lib  # reads the Polaris datasets
