@@ -214,9 +214,10 @@ def proteins_zip(S, url, clean=False, **_):
         yield clean_protein(text) if clean else text
 
 
-def _pdb_group_entries(group, additive_fraction=0.2):
+def _pdb_group_entries(group, extra_entries=(), additive_fraction=0.2):
     ids = json.loads(http_get(f"https://data.rcsb.org/rest/v1/core/entry_groups/{group}"))
     ids = ids["rcsb_group_container_identifiers"]["group_member_ids"]
+    ids += [e for e in extra_entries if e not in ids]
     q = ("{entries(entry_ids:%s){rcsb_id struct{title} nonpolymer_entities{pdbx_entity_nonpoly{comp_id} "
          "nonpolymer_entity_instances{rcsb_nonpolymer_entity_instance_container_identifiers{asym_id}}}}}") % json.dumps(ids)
     entries = json.loads(http_get("https://data.rcsb.org/graphql", {"query": q}))["data"]["entries"]
@@ -231,14 +232,15 @@ def _pdb_group_entries(group, additive_fraction=0.2):
     return {pdb: [(c, a[0]) for c, a in v if c not in additives] for pdb, v in comps.items()}, titles
 
 
-def structures_pdb_group(group, compound_id_pattern=None):
+def structures_pdb_group(group, extra_entries=(), compound_id_pattern=None):
     """All ligand-bound entries of an RCSB PDB group deposition (e.g. ``G_1002283``).
 
+    extra_entries: related PDB IDs deposited outside the group, to include as well.
     compound_id_pattern: regex that pulls the compound ID out of the entry title, used to pair
         structures with potencies by ID when the registered stereo of the potency sample is unreliable.
     """
     rows = []
-    entries, titles = _pdb_group_entries(group)
+    entries, titles = _pdb_group_entries(group, extra_entries)
     for pdb, ligands in sorted(entries.items()):
         m = compound_id_pattern and re.search(compound_id_pattern, titles[pdb])
         for comp, asym in ligands:
